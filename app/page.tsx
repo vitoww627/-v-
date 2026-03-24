@@ -220,10 +220,9 @@ export default function RecipeOrderingSitePrototype() {
   }, 0);
 
   const submitOrderIntent = async () => {
-    const orderLines = cart.length
-      ? cart.map((item) => `- ${item.name} x${item.qty} (${item.price})`).join("
-")
-      : "- 暂无菜品";
+   const orderLines = cart.length
+  ? cart.map((item) => `- ${item.name} x${item.qty} (${item.price})`).join("\n")
+  : "- 暂无菜品";
 
     const plainText = [
       "你好，这是一个新的点单意向：",
@@ -234,7 +233,7 @@ export default function RecipeOrderingSitePrototype() {
       orderLines,
       "",
       `备注：${notes || "无"}`,
-    ].join("
+    ].join("\n")
 ");
 
     const subject = encodeURIComponent(`大V子私房菜点单意向｜${friendName || "未填写姓名"}`);
