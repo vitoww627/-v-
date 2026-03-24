@@ -1,17 +1,43 @@
 "use client";
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShoppingCart, Pencil, Plus, Minus, Search, Star, Lock, Settings2, X } from "lucide-react";
 
-const CATEGORY_OPTIONS = ["全部", "荤", "素", "汤", "主食", "小吃"];
-const RECOMMENDED_DISH_NAMES = ["红烧肉", "葱油面"];
+type Category = "全部" | "荤" | "素" | "汤" | "主食" | "小吃";
+type DishCategory = Exclude<Category, "全部">;
 
-const initialDishes = [
+interface Dish {
+  id: number;
+  name: string;
+  image: string;
+  shortDesc: string;
+  highlights: string[];
+  recipe: string;
+  method: string;
+  price: string;
+  spice: string;
+  categories: DishCategory[];
+}
+
+interface CartItem extends Dish {
+  qty: number;
+}
+
+interface DishEditorProps {
+  dish: Dish;
+  onSave: (dish: Dish) => void;
+}
+
+const CATEGORY_OPTIONS: Category[] = ["全部", "荤", "素", "汤", "主食", "小吃"];
+const RECOMMENDED_DISH_NAMES: string[] = ["红烧肉", "葱油面"];
+
+const initialDishes: Dish[] = [
   {
     id: 1,
     name: "红烧肉",
@@ -56,20 +82,22 @@ const initialDishes = [
   },
 ];
 
-function DishEditor({ dish, onSave }) {
-  const [form, setForm] = useState({
+function DishEditor({ dish, onSave }: DishEditorProps) {
+  const [form, setForm] = useState<Dish>({
     ...dish,
     categories: dish.categories || [],
   });
 
-  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const update = <K extends keyof Dish>(key: K, value: Dish[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  const toggleCategory = (category) => {
+  const toggleCategory = (category: DishCategory) => {
     setForm((prev) => ({
       ...prev,
-      categories: prev.categories?.includes(category)
+      categories: prev.categories.includes(category)
         ? prev.categories.filter((item) => item !== category)
-        : [...(prev.categories || []), category],
+        : [...prev.categories, category],
     }));
   };
 
@@ -87,8 +115,8 @@ function DishEditor({ dish, onSave }) {
       <div className="grid gap-2">
         <div className="text-sm font-medium text-[#4f3928]">分类标签（可多选）</div>
         <div className="flex flex-wrap gap-2">
-          {CATEGORY_OPTIONS.filter((item) => item !== "全部").map((item) => {
-            const active = form.categories?.includes(item);
+          {CATEGORY_OPTIONS.filter((item): item is DishCategory => item !== "全部").map((item) => {
+            const active = form.categories.includes(item);
             return (
               <button
                 key={item}
@@ -110,27 +138,27 @@ function DishEditor({ dish, onSave }) {
 }
 
 export default function RecipeOrderingSitePrototype() {
-  const [dishes, setDishes] = useState(initialDishes);
-  const [search, setSearch] = useState("");
-  const [cart, setCart] = useState([]);
-  const [friendName, setFriendName] = useState("");
-  const [notes, setNotes] = useState("");
-  const [heroImage, setHeroImage] = useState("https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1800&auto=format&fit=crop");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminPasswordInput, setAdminPasswordInput] = useState("");
-  const [adminError, setAdminError] = useState("");
-  const [cartOpen, setCartOpen] = useState(false);
+  const [dishes, setDishes] = useState<Dish[]>(initialDishes);
+  const [search, setSearch] = useState<string>("");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [friendName, setFriendName] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
+  const [heroImage, setHeroImage] = useState<string>("https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1800&auto=format&fit=crop");
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState<string>("");
+  const [adminError, setAdminError] = useState<string>("");
+  const [cartOpen, setCartOpen] = useState<boolean>(false);
   const [cartButtonPos, setCartButtonPos] = useState({ x: 24, y: 24 });
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const dragStartRef = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
   const [lightPos, setLightPos] = useState({ x: 50, y: 18 });
-  const [selectedDish, setSelectedDish] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState("全部");
-  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
-  const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
+  const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category>("全部");
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState<boolean>(false);
+  const [showRecommendedOnly, setShowRecommendedOnly] = useState<boolean>(false);
   const [categoryPointer, setCategoryPointer] = useState({ x: 0, y: 0, active: false });
-  const [submitFeedback, setSubmitFeedback] = useState("");
-  const [editingDish, setEditingDish] = useState(null);
+  const [submitFeedback, setSubmitFeedback] = useState<string>("");
+  const [editingDish, setEditingDish] = useState<Dish | null>(null);
 
   const ADMIN_PASSWORD = "159753";
 
@@ -153,13 +181,13 @@ export default function RecipeOrderingSitePrototype() {
         d.name.toLowerCase().includes(keyword) ||
         d.shortDesc.toLowerCase().includes(keyword) ||
         d.highlights.join(" ").toLowerCase().includes(keyword);
-      const matchesCategory = selectedCategory === "全部" || (d.categories || []).includes(selectedCategory);
+      const matchesCategory = selectedCategory === "全部" || d.categories.includes(selectedCategory as DishCategory);
       const matchesRecommended = !showRecommendedOnly || RECOMMENDED_DISH_NAMES.includes(d.name);
       return matchesKeyword && matchesCategory && matchesRecommended;
     });
   }, [search, dishes, selectedCategory, showRecommendedOnly]);
 
-  const addToCart = (dish) => {
+  const addToCart = (dish: Dish) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === dish.id);
       if (existing) {
@@ -171,7 +199,7 @@ export default function RecipeOrderingSitePrototype() {
     });
   };
 
-  const removeFromCart = (dishId) => {
+  const removeFromCart = (dishId: number) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === dishId);
       if (!existing) return prev;
@@ -184,7 +212,7 @@ export default function RecipeOrderingSitePrototype() {
     });
   };
 
-  const getDishQty = (dishId) => cart.find((item) => item.id === dishId)?.qty || 0;
+  const getDishQty = (dishId: number) => cart.find((item) => item.id === dishId)?.qty || 0;
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
   const totalPrice = cart.reduce((sum, item) => {
     const numericPrice = parseFloat(String(item.price).replace(/[^0-9.]/g, "")) || 0;
@@ -193,7 +221,8 @@ export default function RecipeOrderingSitePrototype() {
 
   const submitOrderIntent = async () => {
     const orderLines = cart.length
-      ? cart.map((item) => `- ${item.name} x${item.qty} (${item.price})`).join("\n")
+      ? cart.map((item) => `- ${item.name} x${item.qty} (${item.price})`).join("
+")
       : "- 暂无菜品";
 
     const plainText = [
@@ -205,7 +234,8 @@ export default function RecipeOrderingSitePrototype() {
       orderLines,
       "",
       `备注：${notes || "无"}`,
-    ].join("\n");
+    ].join("
+");
 
     const subject = encodeURIComponent(`大V子私房菜点单意向｜${friendName || "未填写姓名"}`);
     const body = encodeURIComponent(plainText);
@@ -214,14 +244,14 @@ export default function RecipeOrderingSitePrototype() {
     try {
       window.location.href = mailtoUrl;
       setSubmitFeedback("已尝试打开邮件客户端。");
-    } catch (error) {
-      // ignore and fallback below
+    } catch {
+      // noop
     }
 
     try {
       await navigator.clipboard.writeText(plainText);
       setSubmitFeedback("预览环境可能拦截了发信，订单内容已复制到剪贴板。");
-    } catch (error) {
+    } catch {
       setSubmitFeedback("预览环境可能拦截了发信，请复制内容手动发送到 vitoww627@gmail.com。");
     }
   };
@@ -242,7 +272,7 @@ export default function RecipeOrderingSitePrototype() {
     setAdminPasswordInput("");
   };
 
-  const saveDish = (updatedDish) => {
+  const saveDish = (updatedDish: Dish) => {
     const normalized = { ...updatedDish, categories: updatedDish.categories || [] };
     setDishes((prev) => prev.map((d) => (d.id === normalized.id ? normalized : d)));
     if (selectedDish?.id === normalized.id) setSelectedDish(normalized);
@@ -250,7 +280,7 @@ export default function RecipeOrderingSitePrototype() {
   };
 
   const addNewDish = () => {
-    const newDish = {
+    const newDish: Dish = {
       id: Date.now(),
       name: "新菜品",
       image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop",
@@ -266,7 +296,7 @@ export default function RecipeOrderingSitePrototype() {
     setEditingDish(newDish);
   };
 
-  const startDrag = (clientX, clientY) => {
+  const startDrag = (clientX: number, clientY: number) => {
     setDragging(false);
     dragStartRef.current = {
       x: clientX,
@@ -276,7 +306,7 @@ export default function RecipeOrderingSitePrototype() {
     };
   };
 
-  const onDragMove = (clientX, clientY) => {
+  const onDragMove = (clientX: number, clientY: number) => {
     const dx = dragStartRef.current.x - clientX;
     const dy = dragStartRef.current.y - clientY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
@@ -288,11 +318,11 @@ export default function RecipeOrderingSitePrototype() {
     });
   };
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     startDrag(e.clientX, e.clientY);
 
-    const handleMove = (moveEvent) => onDragMove(moveEvent.clientX, moveEvent.clientY);
+    const handleMove = (moveEvent: MouseEvent) => onDragMove(moveEvent.clientX, moveEvent.clientY);
     const handleUp = () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
@@ -303,13 +333,13 @@ export default function RecipeOrderingSitePrototype() {
     window.addEventListener("mouseup", handleUp);
   };
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
     const touch = e.touches[0];
     if (!touch) return;
     startDrag(touch.clientX, touch.clientY);
   };
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
     const touch = e.touches[0];
     if (!touch) return;
     onDragMove(touch.clientX, touch.clientY);
@@ -319,15 +349,15 @@ export default function RecipeOrderingSitePrototype() {
     setTimeout(() => setDragging(false), 50);
   };
 
-  const updateLightFromPointer = (clientX, clientY) => {
+  const updateLightFromPointer = (clientX: number, clientY: number) => {
     const x = (clientX / window.innerWidth) * 100;
     const y = (clientY / window.innerHeight) * 100;
     setLightPos({ x, y });
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => updateLightFromPointer(e.clientX, e.clientY);
-    const handleTouchMoveGlobal = (e) => {
+    const handleMouseMove = (e: MouseEvent) => updateLightFromPointer(e.clientX, e.clientY);
+    const handleTouchMoveGlobal = (e: TouchEvent) => {
       const touch = e.touches?.[0];
       if (!touch) return;
       updateLightFromPointer(touch.clientX, touch.clientY);
@@ -394,8 +424,8 @@ export default function RecipeOrderingSitePrototype() {
                   <span
                     className="pointer-events-none absolute left-0 top-full mt-1 origin-top-left skew-x-[-18deg] scale-y-[-1] opacity-30 blur-[1.2px]"
                     style={{
-                      WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 38%, rgba(0,0,0,0.12) 68%, transparent 100%)',
-                      maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 38%, rgba(0,0,0,0.12) 68%, transparent 100%)'
+                      WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 38%, rgba(0,0,0,0.12) 68%, transparent 100%)",
+                      maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 38%, rgba(0,0,0,0.12) 68%, transparent 100%)",
                     }}
                     aria-hidden="true"
                   >
@@ -508,7 +538,7 @@ export default function RecipeOrderingSitePrototype() {
                 />
                 <div
                   className="absolute left-[min(640px,calc(100%-48px))] top-14 z-40"
-                  onMouseMove={(e) => {
+                  onMouseMove={(e: React.MouseEvent<HTMLDivElement>) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     setCategoryPointer({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: true });
                   }}
@@ -532,18 +562,15 @@ export default function RecipeOrderingSitePrototype() {
                     const influence = categoryPointer.active ? Math.max(0, 1 - distance / 120) : 0;
                     const offsetX = influence > 0 ? dx * 0.08 : 0;
                     const offsetY = influence > 0 ? dy * 0.08 : 0;
+                    const customStyle = {
+                      ["--tx" as string]: `${pos.x}px`,
+                      ["--ty" as string]: `${pos.y}px`,
+                      animation: `categoryTrailIn 420ms cubic-bezier(0.2, 0.9, 0.2, 1) both`,
+                      animationDelay: `${idx * 70}ms`,
+                    } as React.CSSProperties;
 
                     return (
-                      <div
-                        key={item}
-                        className="absolute"
-                        style={{
-                          ['--tx']: `${pos.x}px`,
-                          ['--ty']: `${pos.y}px`,
-                          animation: `categoryTrailIn 420ms cubic-bezier(0.2, 0.9, 0.2, 1) both`,
-                          animationDelay: `${idx * 70}ms`,
-                        }}
-                      >
+                      <div key={item} className="absolute" style={customStyle}>
                         <button
                           type="button"
                           onClick={() => {
@@ -578,7 +605,7 @@ export default function RecipeOrderingSitePrototype() {
                   <div
                     className="pointer-events-none absolute inset-0 z-0 opacity-90"
                     style={{
-                      background: `radial-gradient(720px circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,236,205,0.18), rgba(255,220,170,0.10) 20%, rgba(255,195,130,0.06) 38%, rgba(255,170,100,0.03) 52%, transparent 72%)`
+                      background: `radial-gradient(720px circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,236,205,0.18), rgba(255,220,170,0.10) 20%, rgba(255,195,130,0.06) 38%, rgba(255,170,100,0.03) 52%, transparent 72%)`,
                     }}
                   />
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-24 bg-[linear-gradient(180deg,rgba(255,244,226,0.08)_0%,transparent_100%)]" />
@@ -659,7 +686,7 @@ export default function RecipeOrderingSitePrototype() {
               <div
                 className="pointer-events-none absolute inset-0 z-0 opacity-90"
                 style={{
-                  background: `radial-gradient(760px circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,236,205,0.18), rgba(255,220,170,0.10) 20%, rgba(255,195,130,0.06) 38%, rgba(255,170,100,0.03) 52%, transparent 72%)`
+                  background: `radial-gradient(760px circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,236,205,0.18), rgba(255,220,170,0.10) 20%, rgba(255,195,130,0.06) 38%, rgba(255,170,100,0.03) 52%, transparent 72%)`,
                 }}
               />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-24 bg-[linear-gradient(180deg,rgba(255,244,226,0.08)_0%,transparent_100%)]" />
@@ -709,7 +736,7 @@ export default function RecipeOrderingSitePrototype() {
             <div
               className="pointer-events-none absolute inset-0 opacity-90"
               style={{
-                background: `radial-gradient(760px circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,236,205,0.18), rgba(255,220,170,0.10) 20%, rgba(255,195,130,0.06) 38%, rgba(255,170,100,0.03) 52%, transparent 72%)`
+                background: `radial-gradient(760px circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,236,205,0.18), rgba(255,220,170,0.10) 20%, rgba(255,195,130,0.06) 38%, rgba(255,170,100,0.03) 52%, transparent 72%)`,
               }}
             />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(255,244,226,0.08)_0%,transparent_100%)]" />
@@ -722,7 +749,7 @@ export default function RecipeOrderingSitePrototype() {
                     className="text-[42px] font-semibold tracking-[0.08em] text-[#fff1de]"
                     style={{
                       fontFamily: '"STSong", "Songti SC", "Noto Serif SC", serif',
-                      textShadow: '0 0 10px rgba(255,220,170,0.22), 0 0 24px rgba(255,170,100,0.10)'
+                      textShadow: "0 0 10px rgba(255,220,170,0.22), 0 0 24px rgba(255,170,100,0.10)",
                     }}
                   >
                     点单篮子
