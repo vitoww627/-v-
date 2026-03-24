@@ -220,40 +220,39 @@ export default function RecipeOrderingSitePrototype() {
   }, 0);
 
   const submitOrderIntent = async () => {
-   const orderLines = cart.length
-  ? cart.map((item) => `- ${item.name} x${item.qty} (${item.price})`).join("\n")
-  : "- 暂无菜品";
+  const orderLines = cart.length
+    ? cart.map((item) => `- ${item.name} x${item.qty} (${item.price})`).join("\n")
+    : "- 暂无菜品";
 
-    const plainText = [
-      "你好，这是一个新的点单意向：",
-      "",
-      `姓名：${friendName || "未填写"}`,
-      "",
-      "菜品：",
-      orderLines,
-      "",
-      `备注：${notes || "无"}`,
-    ].join("\n")
-");
+  const plainText = [
+    "你好，这是一个新的点单意向：",
+    "",
+    `姓名：${friendName || "未填写"}`,
+    "",
+    "菜品：",
+    orderLines,
+    "",
+    `备注：${notes || "无"}`,
+  ].join("\n");
 
-    const subject = encodeURIComponent(`大V子私房菜点单意向｜${friendName || "未填写姓名"}`);
-    const body = encodeURIComponent(plainText);
-    const mailtoUrl = `mailto:vitoww627@gmail.com?subject=${subject}&body=${body}`;
+  const subject = encodeURIComponent(`大V子私房菜点单意向｜${friendName || "未填写姓名"}`);
+  const body = encodeURIComponent(plainText);
+  const mailtoUrl = `mailto:vitoww627@gmail.com?subject=${subject}&body=${body}`;
 
-    try {
-      window.location.href = mailtoUrl;
-      setSubmitFeedback("已尝试打开邮件客户端。");
-    } catch {
-      // noop
-    }
+  try {
+    window.location.href = mailtoUrl;
+    setSubmitFeedback("已尝试打开邮件客户端。");
+  } catch {
+    // noop
+  }
 
-    try {
-      await navigator.clipboard.writeText(plainText);
-      setSubmitFeedback("预览环境可能拦截了发信，订单内容已复制到剪贴板。");
-    } catch {
-      setSubmitFeedback("预览环境可能拦截了发信，请复制内容手动发送到 vitoww627@gmail.com。");
-    }
-  };
+  try {
+    await navigator.clipboard.writeText(plainText);
+    setSubmitFeedback("预览环境可能拦截了发信，订单内容已复制到剪贴板。");
+  } catch {
+    setSubmitFeedback("预览环境可能拦截了发信，请复制内容手动发送到 vitoww627@gmail.com。");
+  }
+};
 
   const unlockAdmin = () => {
     if (adminPasswordInput === ADMIN_PASSWORD) {
